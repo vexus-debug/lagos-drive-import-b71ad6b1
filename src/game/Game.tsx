@@ -8,6 +8,7 @@ import { GameAudio } from "./audio";
 import { HUD } from "./HUD";
 import { Markers, WorldMesh } from "./Models";
 import { LagosDetails, LagosHeritage } from "./Lagos";
+import { MarketStreet } from "./MarketStreet";
 import { createState, step } from "./sim";
 import { SPECS, type GameState, type Input } from "./types";
 import { buildWorld, type World } from "./world";
@@ -192,6 +193,7 @@ export function Game() {
         <WorldMesh W={W} />
         <LagosDetails W={W} />
         <LagosHeritage W={W} />
+        <MarketStreet W={W} />
         <Suspense fallback={null}>
           {S.cars.map((c) => (c.type === "sedan" || c.type === "police" ? <RealCar key={c.id} car={c} /> : <LagosVehicle key={c.id} car={c} />))}
           {S.peds.map((p) => <RealPed key={p.id} ped={p} />)}
