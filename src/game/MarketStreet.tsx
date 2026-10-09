@@ -1,6 +1,26 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import type { World } from "./world";
+import { DIAGONALS, HALF_ROAD, LINES, distToMarina, type World } from "./world";
+
+/** True when a point (with radius) would intrude on any carriageway: grid streets, Marina curve or angled old-town streets. */
+function onRoad(x: number, z: number, r = 1.2) {
+  const lim = HALF_ROAD + r + 0.4;
+  for (const L of LINES) {
+    if (Math.abs(x - L) < lim && z > -262 && z < 212) return true;
+    if (Math.abs(z - L) < lim && x > -212 && x < 212) return true;
+  }
+  if (z < -190 && distToMarina(x, z) < lim) return true;
+  for (const d of DIAGONALS)
+    for (let i = 0; i < d.pts.length - 1; i++) {
+      const a = d.pts[i], b = d.pts[i + 1];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz)));
+      if (Math.hypot(x - (a.x + dx * t), z - (a.z + dz * t)) < lim) return true;
+    }
+  return false;
+}
+const SKIN = ["#3b2416", "#4a2c1a", "#5c3920", "#2e1c11", "#6b4428"];
+const CLOTH = ["#e63946", "#f4a261", "#2a9d8f", "#e9c46a", "#7b2cbf", "#1d3557", "#ff006e", "#06d6a0", "#fb8500", "#ffffff", "#264653", "#b5179e"];
 
 /** Phase 2: street-level Lagos clutter — sidewalk stalls, brand umbrellas, crates, caged generators, POS kiosks, painted signs, sagging NEPA wires. Visual only. */
 
@@ -74,6 +94,10 @@ export function MarketStreet({ W }: { W: World }) {
     rod: new THREE.CylinderGeometry(0.035, 0.035, 1, 5).translate(0, 0.5, 0),
     cage: new THREE.BoxGeometry(1, 1, 1),
     basin: new THREE.CylinderGeometry(0.42, 0.3, 0.22, 10),
+    body: new THREE.CylinderGeometry(0.17, 0.26, 1, 7),
+    head: new THREE.SphereGeometry(0.12, 8, 6),
+    tie: new THREE.ConeGeometry(0.16, 0.18, 7),
+    tray: new THREE.CylinderGeometry(0.3, 0.25, 0.08, 10),
   }), []);
   const mat = useMemo(() => ({
     umb: new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }),
@@ -92,7 +116,16 @@ export function MarketStreet({ W }: { W: World }) {
     const umb: I[] = [], rod: I[] = [], table: I[] = [], goods: I[] = [], crate: I[] = [], basin: I[] = [];
     const gen: I[] = [], cage: I[] = [], exhaust: I[] = [], kiosk: I[] = [], kioskTop: I[] = [], pipe: I[] = [];
     const signList: { p: [number, number, number]; ry: number; k: number }[] = [];
+    const body: I[] = [], head: I[] = [], tie: I[] = [], tray: I[] = [];
     let seed = 1;
+    const person = (x: number, z: number, ry: number, k: number, opt: { tie?: boolean; tray?: boolean; sit?: boolean } = {}) => {
+      if (onRoad(x, z, 0.4)) return;
+      const h = (opt.sit ? 0.75 : 1) * (0.92 + rand(k) * 0.16);
+      body.push({ p: [x, 0.62 * h, z], s: [1, 1.24 * h, 1], ry, c: CLOTH[Math.floor(rand(k * 3.1) * CLOTH.length)] });
+      head.push({ p: [x, 1.38 * h + 0.08, z], s: [1, 1, 1], c: SKIN[Math.floor(rand(k * 5.3) * SKIN.length)] });
+      if (opt.tie || rand(k * 7.7) < 0.4) tie.push({ p: [x, 1.38 * h + 0.2, z], s: [1, 1, 1], ry, c: CLOTH[Math.floor(rand(k * 9.9) * CLOTH.length)] });
+      if (opt.tray) tray.push({ p: [x, 1.38 * h + 0.3, z], s: [1, 1, 1], c: ["#c0c0c0", "#e8590c", "#2f9e44"][k % 3] });
+    };
     W.sidewalks.forEach((L, li) => {
       // centre of block to know outward direction
       const cx = (L[0].x + L[2].x) / 2, cz = (L[0].z + L[2].z) / 2;
@@ -109,6 +142,9 @@ export function MarketStreet({ W }: { W: World }) {
           const r = rand(seed++);
           const x = a.x + dx * t, z = a.z + dz * t;
           if (Math.abs(((t - 9) % 28)) < 1.6) continue; // keep clear around utility poles
+          if (onRoad(x, z) || onRoad(x + nx * 1.2, z + nz * 1.2, 0.6)) continue;
+          // general sidewalk crowd — Lagos density
+          if (rand(seed * 13.3) < 0.55) person(x + dx * 1.4 - nx * (0.2 + rand(seed * 2.9) * 1.6), z + dz * 1.4 - nz * (0.2 + rand(seed * 2.9) * 1.6), rand(seed * 4.1) * 6.28, seed * 17, { tray: rand(seed * 6.6) < 0.18 });
           if (r < 0.2) {
             // trader table + umbrella + goods
             const ux = x + nx * 0.6, uz = z + nz * 0.6;
@@ -117,6 +153,9 @@ export function MarketStreet({ W }: { W: World }) {
             for (let k = 0; k < 4; k++) goods.push({ p: [x - nx * 0.6 + dx * (k - 1.5) * 0.4, 0.72, z - nz * 0.6 + dz * (k - 1.5) * 0.4], s: [0.34, 0.26 + rand(seed + k) * 0.2, 0.5], ry, c: GOODS[Math.floor(rand(seed + k * 3) * GOODS.length)] });
             rod.push({ p: [ux, 0.15, uz], s: [1, 2.2, 1] });
             umb.push({ p: [ux, 2.15, uz], s: [1.5, 1, 1.5], ry: r * 6, c: BRANDS[Math.floor(rand(seed * 1.7) * BRANDS.length)] });
+            person(x - nx * 1.5, z - nz * 1.5, ry, seed * 19, { tie: true, sit: rand(seed * 3.3) < 0.5 }); // trader
+            const nb = 1 + Math.floor(rand(seed * 8.1) * 3);
+            for (let k = 0; k < nb; k++) person(x + dx * (k - 1) * 0.7 + nx * 0.25, z + dz * (k - 1) * 0.7 + nz * 0.25, ry + Math.PI, seed * 23 + k); // buyers
           } else if (r < 0.3) {
             // stacked crates / basins
             const h = 1 + Math.floor(rand(seed * 2.3) * 3);
@@ -135,6 +174,12 @@ export function MarketStreet({ W }: { W: World }) {
             kioskTop.push({ p: [x + nx * 0.41, 0.75, z + nz * 0.41], s: [1.1, 0.55, 1], ry });
             rod.push({ p: [x, 0.15, z], s: [1, 2.3, 1] });
             umb.push({ p: [x, 2.25, z], s: [1.4, 1, 1.4], c: "#ffcb05" });
+            person(x - nx * 0.75, z - nz * 0.75, ry, seed * 29, { sit: true }); // POS operator
+            for (let k = 0; k < 3; k++) person(x + nx * 0.55 + dx * (k * 0.6 - 0.3) , z + nz * 0.55 + dz * (k * 0.6 - 0.3), ry + Math.PI, seed * 31 + k); // queue
+          } else if (r < 0.43) {
+            // shopfront trader with customers
+            person(x - nx * 1.7, z - nz * 1.7, ry, seed * 37, { tie: true });
+            person(x - nx * 1.0, z - nz * 1.0, ry + Math.PI, seed * 41);
           } else if (r < 0.46) {
             signList.push({ p: [x - nx * 1.2, 1.8, z - nz * 1.2], ry, k: Math.floor(rand(seed * 11) * SIGNS.length) });
             rod.push({ p: [x - nx * 1.2 - dx * 0.8, 0, z - nz * 1.2 - dz * 0.8], s: [1, 2.3, 1] });
@@ -170,13 +215,17 @@ export function MarketStreet({ W }: { W: World }) {
     }
     const wireGeo = new THREE.BufferGeometry();
     wireGeo.setAttribute("position", new THREE.Float32BufferAttribute(wires, 3));
-    return { umb, rod, table, goods, crate, basin, gen, cage, exhaust, kiosk, kioskTop, pipe, signList, wireGeo };
+    return { body, head, tie, tray, umb, rod, table, goods, crate, basin, gen, cage, exhaust, kiosk, kioskTop, pipe, signList, wireGeo };
   }, [W]);
 
   const byKind = useMemo(() => SIGNS.map((_, k) => D.signList.filter((s) => s.k === k).map((s) => ({ p: s.p, s: [2, 0.75, 0.05] as [number, number, number], ry: s.ry }))), [D]);
 
   return (
     <group>
+      <Inst items={D.body} geo={geo.body} mat={mat.goods} />
+      <Inst items={D.head} geo={geo.head} mat={mat.goods} cast={false} />
+      <Inst items={D.tie} geo={geo.tie} mat={mat.goods} cast={false} />
+      <Inst items={D.tray} geo={geo.tray} mat={mat.goods} cast={false} />
       <Inst items={D.umb} geo={geo.umb} mat={mat.umb} />
       <Inst items={D.rod} geo={geo.rod} mat={mat.metal} cast={false} />
       <Inst items={D.table} geo={geo.box} mat={mat.wood} />
