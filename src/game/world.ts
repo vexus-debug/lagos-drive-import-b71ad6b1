@@ -127,8 +127,8 @@ export function rng(seed: number) {
   };
 }
 
-const PALETTE = ["#f2e3c6", "#e8b07a", "#d9734e", "#5fb3a8", "#f4d35e", "#e6e1d3", "#8fb8de", "#c97b84", "#f0a868", "#9cc69b"];
-const HERITAGE = ["#f3d9a4", "#e9b8a0", "#cfe3c6", "#f2c4a0", "#efe6d2"];
+const PALETTE = ["#efe0c2", "#ddb27a", "#c9785a", "#8fbfa8", "#e8c66a", "#e3dccb", "#a9c4cf", "#c08a7a", "#e2a46c", "#a8c69b"];
+const HERITAGE = ["#e6c27a", "#d98f6a", "#b9d8bf", "#c97c5d", "#efe3c8", "#d6b46a", "#9fc7b0"];
 const STALL = ["#e63946", "#f4a261", "#2a9d8f", "#e9c46a", "#457b9d", "#8ac926", "#ff6b9a"];
 const SIGNS: [string, string, string][] = [
   ["WELCOME TO LAGOS ISLAND", "#0b6e4f", "#ffffff"],
