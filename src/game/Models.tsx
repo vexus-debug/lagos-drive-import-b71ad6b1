@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { Car, GameState, Ped } from "./types";
 import { DIAGONALS, FLYOVER_Z, LINES, MARINA_CURVE, type World } from "./world";
 import { Buildings } from "./Buildings";
+import { OldTown } from "./OldTown";
 import { asphalt, facade, ground, pavement, worldUVFacade } from "./textures";
 
 const mats = new Map<string, THREE.MeshLambertMaterial>();
@@ -176,6 +177,7 @@ export function WorldMesh({ W }: { W: World }) {
       ))}
       {/* buildings */}
       <Buildings W={W} />
+      <OldTown W={W} />
       <instancedMesh ref={trunkRef} args={[undefined, undefined, W.palms.length]} castShadow>
         <cylinderGeometry args={[0.18, 0.3, 7, 5]} />
         <meshLambertMaterial color="#8a6a45" flatShading />

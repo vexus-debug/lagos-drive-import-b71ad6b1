@@ -112,6 +112,7 @@ export function facade() {
   st.addColorStop(1, "rgba(90,80,70,0)");
   g.fillStyle = st;
   g.fillRect(24, 86, 80, 14);
+  weather(g, 128, 112);
   const t = tex(c);
   t.anisotropy = 4;
   return t;
@@ -200,6 +201,7 @@ export function residentialFacade() {
   st.addColorStop(0, "rgba(80,70,60,0.35)"); st.addColorStop(1, "rgba(80,70,60,0)");
   g.fillStyle = st; g.fillRect(66, 84, 56, 28);
   g.fillStyle = "#b9b0a1"; g.fillRect(0, 104, 128, 8);
+  weather(g, 128, 112);
   return tex(c);
 }
 
@@ -251,3 +253,37 @@ export function signTexture(text: string, bg: string, fg: string, w = 512, h = 1
   t.anisotropy = 4;
   return t;
 }
+
+/** Rusted corrugated zinc sheet: vertical ridges, rust blooms, sheet overlaps. Tinted per instance. */
+export function corrugatedZinc() {
+  const [c, g] = canvas(128, 128);
+  for (let x = 0; x < 128; x++) {
+    const v = 200 + Math.sin((x / 128) * Math.PI * 32) * 45;
+    g.fillStyle = `rgb(${v},${v},${v})`;
+    g.fillRect(x, 0, 1, 128);
+  }
+  for (let i = 0; i < 40; i++) {
+    const x = Math.random() * 128, y = Math.random() * 128, r = 3 + Math.random() * 12;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, "rgba(110,50,20,0.55)"); gr.addColorStop(1, "rgba(110,50,20,0)");
+    g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  g.fillStyle = "rgba(40,30,20,0.5)";
+  g.fillRect(0, 62, 128, 2);
+  noise(g, 128, 128, 800, ["#5a3a24", "#d0d0d0", "#3a2a1c"], 1);
+  return tex(c, 4, 2);
+}
+
+/** Tropical weathering: rain runoff streaks from the top and rising damp at the base. */
+function weather(g: CanvasRenderingContext2D, w: number, h: number) {
+  for (let i = 0; i < 9; i++) {
+    const x = Math.random() * w, sw = 2 + Math.random() * 6, len = h * (0.25 + Math.random() * 0.6);
+    const gr = g.createLinearGradient(0, 0, 0, len);
+    gr.addColorStop(0, "rgba(60,55,45,0.35)"); gr.addColorStop(1, "rgba(60,55,45,0)");
+    g.fillStyle = gr; g.fillRect(x, 0, sw, len);
+  }
+  const d = g.createLinearGradient(0, h, 0, h * 0.8);
+  d.addColorStop(0, "rgba(70,80,50,0.35)"); d.addColorStop(1, "rgba(70,80,50,0)");
+  g.fillStyle = d; g.fillRect(0, h * 0.8, w, h * 0.2);
+}
+export { weather as _weather };

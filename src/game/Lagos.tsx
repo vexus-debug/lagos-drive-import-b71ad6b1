@@ -1,3 +1,4 @@
+import { roofRise } from "./OldTown";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { NECOM, type World } from "./world";
@@ -56,9 +57,9 @@ export function LagosDetails({ W }: { W: World }) {
     data.lowBuildings.forEach((b, i) => {
       const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
       const ox = (b.maxX - b.minX) * 0.25, oz = (b.maxZ - b.minZ) * 0.25;
-      tank.current!.setMatrixAt(i, m.compose(v.set(cx + ox, b.h + 2.2, cz - oz), q.identity(), s.set(1, 1, 1)));
+      tank.current!.setMatrixAt(i, m.compose(v.set(cx + ox, b.h + roofRise(b) + 2.2, cz - oz), q.identity(), s.set(1, 1, 1)));
       tank.current!.setColorAt(i, c.set(i % 5 === 0 ? "#1f4fbf" : "#151515"));
-      tankStand.current!.setMatrixAt(i, m.compose(v.set(cx + ox, b.h + 0.6, cz - oz), q.identity(), s.set(1, 1, 1)));
+      tankStand.current!.setMatrixAt(i, m.compose(v.set(cx + ox, b.h + roofRise(b) + 0.6, cz - oz), q.identity(), s.set(1, 1, 1)));
       shop.current!.setMatrixAt(i, m.compose(v.set(cx, 1.6, cz), q.identity(), s.set(b.maxX - b.minX + 0.12, 3.2, b.maxZ - b.minZ + 0.12)));
     });
     W.poles.forEach((p, i) => {
